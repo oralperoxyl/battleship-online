@@ -149,6 +149,9 @@ function onShoot(room, p, msg) {
     const ship = board.ships.find(s => s.cells.includes(idx));
     ship.hits.add(idx);
     const sunk = ship.cells.every(c => ship.hits.has(c));
+    if (sunk) {
+      ship.cells.forEach(c => neighbors8(c).forEach(n => { if (!board.hits[n]) board.hits[n] = true; }));
+    }
     log(room, sunk ? `${p.nick} топит корабль соперника! 💥` : `${p.nick} попадание!`);
     const allSunk = board.ships.every(s => s.cells.every(c => s.hits.has(c)));
     if (allSunk) { endGame(room, p.id, `${p.nick} потопил весь флот ${opp.nick} и побеждает!`); return; }
