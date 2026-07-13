@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Морской бой 98</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --silver:#C0C0C0;--silver-light:#DFDFDF;--white:#FFF;--gray:#808080;--black:#0A0A0A;
+  --navy:#000080;--navy2:#1084D0;--teal:#008080;--sel:#000080;
+  --font:13px Tahoma,"MS Sans Serif","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font:var(--font);background:var(--teal);color:var(--black);display:flex;flex-direction:column;align-items:center;padding:12px 8px 30px;min-height:100%;user-select:none}
+body{background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:3px 3px}
+.raised{background:var(--silver);box-shadow:inset -1px -1px var(--black),inset 1px 1px var(--white),inset -2px -2px var(--gray),inset 2px 2px var(--silver-light)}
+.sunken{background:var(--white);box-shadow:inset -1px -1px var(--white),inset 1px 1px var(--gray),inset -2px -2px var(--silver-light),inset 2px 2px var(--black)}
+.window{width:100%;max-width:440px;padding:4px;margin-bottom:12px;background:var(--silver);
+  box-shadow:inset -1px -1px var(--black),inset 1px 1px var(--silver-light),inset -2px -2px var(--gray),inset 2px 2px var(--white),2px 2px 0 rgba(0,0,0,.35)}
+.titlebar{display:flex;align-items:center;gap:6px;height:28px;padding:0 4px 0 8px;background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;font-weight:bold}
+.titlebar .ticon{width:16px;text-align:center}
+.titlebar .ttext{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.tbtn{width:22px;height:20px;border:0;flex:none;font:bold 12px Tahoma,sans-serif;line-height:1;cursor:pointer;color:var(--black)}
+.tbtn:active{box-shadow:inset 1px 1px var(--black),inset -1px -1px var(--white),inset 2px 2px var(--gray),inset -2px -2px var(--silver-light)}
+.wbody{padding:10px 10px 10px}
+.statusbar{display:flex;gap:3px;margin:0 2px 2px;padding-top:3px}
+.statusbar span{flex:1;padding:3px 7px;font-size:12px;color:#222;box-shadow:inset 1px 1px var(--gray),inset -1px -1px var(--white);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+button.b{font:var(--font);min-height:38px;padding:7px 12px;border:0;cursor:pointer;color:var(--black)}
+button.b:active:not(:disabled){box-shadow:inset 1px 1px var(--black),inset -1px -1px var(--white),inset 2px 2px var(--gray),inset -2px -2px var(--silver-light);transform:translate(1px,1px)}
+button.b:disabled{color:var(--gray);text-shadow:1px 1px 0 var(--white);cursor:default}
+.b-wide{display:block;width:100%}
+.b-default{font-weight:bold;box-shadow:0 0 0 1px var(--black),inset -1px -1px var(--black),inset 1px 1px var(--white),inset -2px -2px var(--gray),inset 2px 2px var(--silver-light)}
+.row{display:flex;gap:8px}.row>*{flex:1}
+input.f{font:var(--font);width:100%;min-height:38px;padding:6px 8px;border:0;background:var(--white)}
+input.f:focus,button.b:focus-visible{outline:1px dotted var(--black);outline-offset:-4px}
+label.lb{display:block;margin:10px 0 4px;font-size:12px}
+fieldset{border:0;padding:8px;margin:10px 0;box-shadow:inset -1px -1px var(--white),inset 1px 1px var(--gray),1px 1px 0 var(--white),-1px -1px 0 var(--gray)}
+legend{padding:0 4px;font-size:12px}
+.hint{font-size:12px;color:#333;line-height:1.45;margin-top:8px}
+.mt{margin-top:10px}
+.hidden{display:none!important}
+.code{font-family:"Lucida Console",monospace;font-weight:bold;letter-spacing:3px;font-size:20px;text-align:center;padding:10px;user-select:text}
+
+/* board grid */
+.boardwrap{margin:8px 0}
+.boardtitle{font-size:12px;font-weight:bold;margin-bottom:4px;display:flex;justify-content:space-between}
+.board{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;background:var(--gray);padding:2px}
+.cell{aspect-ratio:1;background:var(--white);box-shadow:inset 1px 1px var(--gray);position:relative;cursor:pointer}
+.cell.ship{background:#8090A0}
+.cell.hit{background:var(--sel);color:#fff}
+.cell.hit::after{content:"✕";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff}
+.cell.miss{background:var(--white)}
+.cell.miss::after{content:"•";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--gray)}
+.cell.sunk{background:#600}
+.cell.preview{outline:2px solid var(--navy2);outline-offset:-2px}
+.cell.badpreview{outline:2px solid #A00;outline-offset:-2px}
+.cell.notarget{cursor:default}
+
+/* fleet tray */
+.fleet{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.shipchip{padding:6px 10px;font-size:12px;background:var(--white);box-shadow:inset 1px 1px var(--gray),inset -1px -1px var(--white);cursor:pointer}
+.shipchip.sel{background:var(--sel);color:#fff}
+.shipchip.done{color:var(--gray);text-decoration:line-through;cursor:default}
+
+.turninfo{padding:8px;font-size:12px;background:var(--silver-light);box-shadow:inset 1px 1px var(--white),inset -1px -1px var(--gray);margin:8px 0}
+.cd{font-family:"Lucida Console",monospace;font-weight:bold}
+.chat{max-height:22vh;overflow-y:auto;padding:6px 8px;font-size:12px;line-height:1.5}
+.msg.sys{color:var(--gray);font-style:italic}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.15);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
+.overlay.open{display:flex}
+.dialog{width:100%;max-width:340px;margin:0}
+.dlg-body{display:flex;gap:12px;padding:14px 12px;align-items:flex-start}
+.dlg-icon{font-size:30px;line-height:1;flex:none}
+.dlg-text{font-size:13px;line-height:1.45;padding-top:4px;user-select:text}
+.dlg-btns{display:flex;gap:8px;justify-content:center;padding:0 12px 12px;flex-wrap:wrap}
+.dlg-btns .b{min-width:96px}
+</style>
+</head>
+<body>
+
+<!-- ============ MENU ============ -->
+<div class="window" id="scr-menu">
+  <div class="titlebar"><span class="ticon">🚢</span><span class="ttext">Морской бой 98</span></div>
+  <div class="wbody">
+    <label class="lb" for="nick">Ваш ник:</label>
+    <input class="f sunken" id="nick" maxlength="14" autocomplete="off" placeholder="Аноним">
+    <button class="b raised b-wide b-default mt" onclick="quickMatch()">Быстрая игра</button>
+    <button class="b raised b-wide mt" onclick="createRoom()">Создать комнату для друга</button>
+    <fieldset>
+      <legend>Войти по коду</legend>
+      <div class="row">
+        <input class="f sunken" id="joincode" maxlength="5" placeholder="КОД" style="text-transform:uppercase" autocomplete="off">
+        <button class="b raised" style="flex:0 0 96px" onclick="joinRoom()">Войти</button>
+      </div>
+    </fieldset>
+    <div class="hint" id="menuhint">Быстрая игра подберёт случайного соперника. Или создайте комнату и пришлите код другу.</div>
+  </div>
+  <div class="statusbar"><span id="netstatus">Не подключено</span></div>
+</div>
+
+<!-- ============ WAITING (private room, before opponent joins) ============ -->
+<div class="window hidden" id="scr-wait">
+  <div class="titlebar"><span class="ticon">🚪</span><span class="ttext">Ждём соперника</span></div>
+  <div class="wbody">
+    <div class="hint" style="margin:0 0 4px">Код комнаты (нажмите, чтобы скопировать ссылку):</div>
+    <div class="code sunken" id="roomcode" onclick="copyInvite()">—</div>
+    <div class="hint">Пришлите код другу или ссылку в Telegram.</div>
+  </div>
+  <div class="statusbar"><span>Ожидание соперника…</span></div>
+</div>
+
+<!-- ============ PLACEMENT ============ -->
+<div class="window hidden" id="scr-place">
+  <div class="titlebar"><span class="ticon">⚓</span><span class="ttext">Расстановка флота</span></div>
+  <div class="wbody">
+    <div class="turninfo">Кликните клетку, чтобы поставить выбранный корабль. <span class="cd" id="placecd"></span></div>
+    <div class="boardwrap"><div class="board" id="placeboard"></div></div>
+    <div class="row mt">
+      <button class="b raised" onclick="toggleOrient()">Поворот: <span id="orienttxt">→</span></button>
+      <button class="b raised" onclick="resetPlacement()">Сбросить</button>
+    </div>
+    <div class="fleet" id="fleettray"></div>
+    <div class="row mt">
+      <button class="b raised" onclick="autoPlace()">Авто-расстановка</button>
+      <button class="b raised b-default" id="readybtn" onclick="sendPlacement()" disabled>Готово!</button>
+    </div>
+    <div class="hint" id="placehint"></div>
+  </div>
+  <div class="statusbar"><span id="placestatus"></span></div>
+</div>
+
+<!-- ============ BATTLE ============ -->
+<div class="window hidden" id="scr-battle">
+  <div class="titlebar"><span class="ticon">🎯</span><span class="ttext" id="battletitle">Бой</span></div>
+  <div class="wbody">
+    <div class="turninfo" id="turnbanner"></div>
+    <div class="boardwrap">
+      <div class="boardtitle"><span>Флот соперника (стреляйте сюда)</span></div>
+      <div class="board" id="oppboard"></div>
+    </div>
+    <div class="boardwrap">
+      <div class="boardtitle"><span>Ваш флот</span></div>
+      <div class="board" id="myboard"></div>
+    </div>
+    <div class="chat sunken" id="chat"></div>
+  </div>
+  <div class="statusbar"><span id="battlestatus">—</span></div>
+</div>
+
+<!-- ============ generic dialog ============ -->
+<div class="overlay" id="ovl">
+  <div class="window dialog">
+    <div class="titlebar"><span class="ttext" id="dlg-title">Морской бой 98</span>
+      <button class="tbtn raised" onclick="closeDlg()">×</button></div>
+    <div class="dlg-body"><span class="dlg-icon" id="dlg-ico">❗</span><span class="dlg-text" id="dlg-msg"></span></div>
+    <div class="dlg-btns" id="dlg-btns"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const J = o => JSON.stringify(o);
+const SIZE = 10, CELLS = 100;
+const FLEET = [4,3,3,2,2,2,1,1,1,1];
+let ws=null, st=null, session=null;
+let orient = 'h'; // h or v
+let placedShips = []; // [{len, cells:[...]}]
+let previewCells = [];
+
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { try { tg.ready(); tg.expand(); } catch(e){} }
+
+/* ================= dialogs ================= */
+function dlg(title,msg,buttons,icon){
+  $("dlg-title").textContent=title; $("dlg-msg").innerHTML=msg; $("dlg-ico").textContent=icon||"❗";
+  const box=$("dlg-btns"); box.innerHTML="";
+  (buttons||[{t:"ОК"}]).forEach((b,i)=>{
+    const el=document.createElement("button");
+    el.className="b raised"+(i===0?" b-default":""); el.textContent=b.t;
+    el.onclick=()=>{closeDlg(); if(b.fn)b.fn();};
+    box.appendChild(el);
+  });
+  $("ovl").classList.add("open");
+}
+function closeDlg(){ $("ovl").classList.remove("open"); }
+
+/* ================= net ================= */
+function connect(onOpen){
+  const proto = location.protocol==="https:" ? "wss" : "ws";
+  ws = new WebSocket(proto+"://"+location.host+"/ws");
+  ws.onopen = ()=>{ $("netstatus").textContent="Подключено"; if(onOpen) onOpen(); };
+  ws.onclose = ()=>{
+    $("netstatus").textContent="Соединение потеряно";
+    if(session){ setTimeout(()=>connect(()=>ws.send(J({t:"rejoin",code:session.code,token:session.token}))),1500); }
+  };
+  ws.onmessage = ev => { let m; try{ m=JSON.parse(ev.data);}catch(e){return;} handle(m); };
+}
+function startNet(fn){ if(ws && ws.readyState===1) fn(); else connect(fn); }
+function myNick(){
+  let n = $("nick").value.trim();
+  if(!n && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) n = tg.initDataUnsafe.user.first_name || "";
+  return n || "Аноним";
+}
+function createRoom(){ startNet(()=>ws.send(J({t:"create",nick:myNick()}))); }
+function joinRoom(){
+  const code = $("joincode").value.trim().toUpperCase();
+  if(code.length<5){ dlg("Ошибка","Введите код комнаты из 5 символов.",null,"⛔"); return; }
+  startNet(()=>ws.send(J({t:"join",code,nick:myNick()})));
+}
+function quickMatch(){
+  $("menuhint").textContent = "Ищем соперника…";
+  startNet(()=>ws.send(J({t:"quick",nick:myNick()})));
+}
+
+/* ================= message handling ================= */
+function handle(m){
+  switch(m.t){
+    case "joined":
+      session = { code:m.code, token:m.token };
+      break;
+    case "queued":
+      $("menuhint").textContent = "Вы в очереди — ждём второго игрока…";
+      break;
+    case "state": st = m; render(); break;
+    case "log": addMsg(m.e); break;
+    case "result": showResult(m); break;
+    case "err":
+      dlg("Ошибка", esc(m.text), null, "⛔");
+      if(m.fatal){ session=null; show("menu"); }
+      break;
+  }
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ================= screens ================= */
+const screens=["menu","wait","place","battle"];
+function show(name){ screens.forEach(s=>$("scr-"+s).classList.toggle("hidden", s!==name)); }
+
+function render(){
+  if(!st) return;
+  if(st.phase==="lobby") { show("wait"); $("roomcode").textContent = st.code; }
+  else if(st.phase==="placement") renderPlacement();
+  else if(st.phase==="battle" || st.phase==="over") renderBattle();
+}
+
+/* ================= placement ================= */
+function buildEmptyGrid(container, onClick){
+  container.innerHTML="";
+  for(let i=0;i<CELLS;i++){
+    const c=document.createElement("div");
+    c.className="cell"; c.dataset.idx=i;
+    if(onClick) c.onclick=()=>onClick(i);
+    container.appendChild(c);
+  }
+}
+
+function renderPlacement(){
+  show("place");
+  if($("placeboard").children.length !== CELLS) buildEmptyGrid($("placeboard"), onCellClickPlace);
+  drawPlacementBoard();
+  renderFleetTray();
+  $("placestatus").textContent = "Соперник: " + (st.opponent ? st.opponent.nick + (st.opponent.placed?" (готов)":" (расставляет)") : "…");
+}
+
+function currentFleetPool(){
+  // remaining ship lengths not yet placed, classic order largest-first
+  const used = placedShips.map(s=>s.len);
+  const pool = [...FLEET];
+  used.forEach(len=>{ const i=pool.indexOf(len); if(i>=0) pool.splice(i,1); });
+  return pool;
+}
+let selectedLen = null;
+
+function renderFleetTray(){
+  const pool = currentFleetPool();
+  if(selectedLen===null || !pool.includes(selectedLen)) selectedLen = pool.length? pool[0] : null;
+  const tray=$("fleettray"); tray.innerHTML="";
+  const counts={};
+  FLEET.forEach(l=>counts[l]=(counts[l]||0)+1);
+  const placedCounts={};
+  placedShips.forEach(s=>placedCounts[s.len]=(placedCounts[s.len]||0)+1);
+  Object.keys(counts).sort((a,b)=>b-a).forEach(lenStr=>{
+    const len=+lenStr;
+    const total=counts[len], done=placedCounts[len]||0;
+    for(let i=0;i<total;i++){
+      const chip=document.createElement("div");
+      const isDone = i<done;
+      chip.className="shipchip"+(isDone?" done":(len===selectedLen?" sel":""));
+      chip.textContent = "▬".repeat(len);
+      if(!isDone) chip.onclick=()=>{ selectedLen=len; renderFleetTray(); };
+      tray.appendChild(chip);
+    }
+  });
+  $("readybtn").disabled = pool.length>0;
+  $("placehint").textContent = pool.length>0
+    ? `Осталось поставить: ${pool.join(', ')}`
+    : "Флот расставлен — можно нажать «Готово!»";
+}
+
+function toggleOrient(){ orient = orient==='h' ? 'v' : 'h'; $("orienttxt").textContent = orient==='h' ? '→' : '↓'; }
+
+function shipCellsFrom(start, len, orient){
+  const x = start % SIZE, y = Math.floor(start/SIZE);
+  const cells=[];
+  for(let i=0;i<len;i++){
+    const cx = orient==='h' ? x+i : x;
+    const cy = orient==='h' ? y : y+i;
+    if(cx>=SIZE || cy>=SIZE) return null;
+    cells.push(cy*SIZE+cx);
+  }
+  return cells;
+}
+function occupiedSet(){ const s=new Set(); placedShips.forEach(sh=>sh.cells.forEach(c=>s.add(c))); return s; }
+function neighbors8(idx){ const x=idx%SIZE,y=Math.floor(idx/SIZE),out=[]; for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){ if(dx===0&&dy===0)continue; const nx=x+dx,ny=y+dy; if(nx>=0&&nx<SIZE&&ny>=0&&ny<SIZE) out.push(ny*SIZE+nx);} return out; }
+function canPlace(cells, occ){
+  if(!cells) return false;
+  for(const c of cells){ if(occ.has(c)) return false; for(const n of neighbors8(c)) if(occ.has(n)) return false; }
+  return true;
+}
+
+function onCellClickPlace(idx){
+  if(selectedLen===null) return;
+  const occ = occupiedSet();
+  // clicking an already-placed ship removes it
+  const existing = placedShips.find(s=>s.cells.includes(idx));
+  if(existing){ placedShips = placedShips.filter(s=>s!==existing); drawPlacementBoard(); renderFleetTray(); return; }
+  const cells = shipCellsFrom(idx, selectedLen, orient);
+  if(!canPlace(cells, occ)){ flashBad(cells||[idx]); return; }
+  placedShips.push({ len:selectedLen, cells });
+  drawPlacementBoard();
+  renderFleetTray();
+}
+function flashBad(cells){
+  const board=$("placeboard");
+  cells.forEach(c=>{ if(c>=0&&c<CELLS) board.children[c].classList.add("badpreview"); });
+  setTimeout(()=>{ cells.forEach(c=>{ if(c>=0&&c<CELLS) board.children[c].classList.remove("badpreview"); }); }, 300);
+}
+function drawPlacementBoard(){
+  const board=$("placeboard");
+  const occ = occupiedSet();
+  for(let i=0;i<CELLS;i++){ board.children[i].className = "cell"+(occ.has(i)?" ship":""); }
+}
+function resetPlacement(){ placedShips=[]; selectedLen=null; drawPlacementBoard(); renderFleetTray(); }
+function autoPlace(){ ws.send(J({t:"place", auto:true})); }
+function sendPlacement(){
+  const cells = placedShips.flatMap(s=>s.cells);
+  ws.send(J({t:"place", cells}));
+  $("readybtn").disabled = true;
+  $("placehint").textContent = "Ждём соперника…";
+}
+
+/* ================= battle ================= */
+function renderBattle(){
+  show("battle");
+  if($("oppboard").children.length !== CELLS) buildEmptyGrid($("oppboard"), onShoot);
+  if($("myboard").children.length !== CELLS) buildEmptyGrid($("myboard"), null);
+
+  // my board: ships + incoming hits/misses
+  const myShipSet = new Set((st.myShips||[]).flat());
+  const sunkMineSet = new Set((st.sunkMine||[]).flat());
+  for(let i=0;i<CELLS;i++){
+    const cell = $("myboard").children[i];
+    const wasShot = (st.oppShotsAtMe||[]).find(s=>s.i===i);
+    let cls="cell";
+    if(sunkMineSet.has(i)) cls+=" sunk";
+    else if(wasShot && wasShot.hit) cls+=" hit";
+    else if(myShipSet.has(i)) cls+=" ship";
+    if(wasShot && !wasShot.hit) cls+=" miss";
+    cell.className=cls;
+  }
+  // opponent board: fog of war, only my own shots visible
+  const sunkOppSet = new Set((st.sunkOpp||[]).flat());
+  for(let i=0;i<CELLS;i++){
+    const cell = $("oppboard").children[i];
+    const shot = (st.myShotsAtOpp||[]).find(s=>s.i===i);
+    let cls="cell";
+    if(sunkOppSet.has(i)) cls+=" sunk";
+    else if(shot && shot.hit) cls+=" hit";
+    else if(shot) cls+=" miss";
+    if(shot || st.phase!=="battle" || !st.yourTurn) cls+=" notarget";
+    cell.className=cls;
+  }
+
+  $("battletitle").textContent = "Бой — " + (st.opponent ? "против "+st.opponent.nick : "");
+  const tb=$("turnbanner");
+  if(st.phase==="battle"){
+    tb.innerHTML = st.yourTurn ? "<b>Ваш ход!</b> Стреляйте по полю соперника." : "Ход соперника… ждите.";
+  }
+  $("battlestatus").textContent = st.opponent ? (st.opponent.online?"Соперник в сети":"Соперник отключился") : "";
+}
+
+function onShoot(idx){
+  if(!st || st.phase!=="battle" || !st.yourTurn) return;
+  const already = (st.myShotsAtOpp||[]).some(s=>s.i===idx);
+  if(already) return;
+  ws.send(J({t:"shoot", idx}));
+}
+
+/* ================= chat ================= */
+function addMsg(e){
+  const box=$("chat");
+  const d=document.createElement("div");
+  d.className="msg sys"; d.textContent="* "+e.text;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+
+/* ================= result ================= */
+function showResult(m){
+  dlg(m.winner ? "Игра окончена" : "Игра окончена", esc(m.msg), [{t:"В меню", fn:()=>{ session=null; location.reload(); }}], "🏆");
+}
+
+/* ================= countdown ================= */
+setInterval(()=>{
+  if(!st) return;
+  const t = Math.max(0, Math.round((st.deadline - Date.now())/1000));
+  const pc=$("placecd"); if(pc && st.phase==="placement") pc.textContent = "⏱ "+t+" с";
+}, 500);
+
+/* ================= invite ================= */
+function copyInvite(){
+  const url=location.origin+location.pathname+"?room="+st.code;
+  const share=()=>{ if(tg && tg.openTelegramLink){ tg.openTelegramLink("https://t.me/share/url?url="+encodeURIComponent(url)+"&text="+encodeURIComponent("Сыграем в Морской бой 98! Код: "+st.code)); } };
+  if(navigator.clipboard){ navigator.clipboard.writeText(url).then(()=>dlg("Скопировано","Ссылка-приглашение в буфере обмена.",tg?[{t:"ОК"},{t:"Отправить в Telegram",fn:share}]:null,"📋")).catch(share); }
+  else share();
+}
+
+/* ================= init ================= */
+(function init(){
+  const params=new URLSearchParams(location.search);
+  const roomParam=(params.get("room")||params.get("tgWebAppStartParam")||"").toUpperCase();
+  if(roomParam) $("joincode").value=roomParam;
+  show("menu");
+})();
+</script>
+</body>
+</html>
