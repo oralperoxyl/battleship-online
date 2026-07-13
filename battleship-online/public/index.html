@@ -402,18 +402,19 @@ function fitBattleBoards(){
   const turnbanner = $("turnbanner");
   const chat = $("chat");
   const titles = scr.querySelectorAll(".boardtitle");
+  const boardwrap = scr.querySelector(".boardwrap"); // истинная доступная ширина берётся отсюда, а не из window.innerWidth
   let fixedH = titlebar.offsetHeight + statusbar.offsetHeight + turnbanner.offsetHeight + chat.offsetHeight;
   titles.forEach(t=>fixedH += t.offsetHeight);
   fixedH += 70; // паддинги wbody, зазоры между блоками, поля body
   const available = window.innerHeight - fixedH - 12;
   const perBoard = Math.floor(available/2) - 6;
-  const maxByWidth = Math.min(window.innerWidth - 32, 420);
+  const maxByWidth = boardwrap ? boardwrap.clientWidth : (window.innerWidth - 32);
   const size = Math.max(140, Math.min(perBoard, maxByWidth));
   $("oppboard").style.width = size+"px";
   $("myboard").style.width = size+"px";
 }
 window.addEventListener("resize", ()=>{ if(st) fitBattleBoards(); });
-window.addEventListener("orientationchange", ()=>{ if(st) setTimeout(fitBattleBoards, 200); });
+window.addEventListener("orientationchange", ()=>{ if(st){ setTimeout(fitBattleBoards, 200); } });
 
 function onShoot(idx){
   if(!st || st.phase!=="battle" || !st.yourTurn) return;
